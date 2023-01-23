@@ -14,8 +14,8 @@ begin
 progCount = 0; // Program counter, counting from 0 to 15
 i = 0; // initializing
 {_if.s_flag, _if.c_flag, _if.z_flag, _if.HLT} = 0;
-/*stackPoint = 4'b1110;
-  for (i=0; i<(2^n); i=i+1)
+stackPoint = 4'b1110;
+  /*for (i=0; i<(2^n); i=i+1)
     begin
       mem[i]=i;
       stackReg[i]=i;
@@ -23,16 +23,6 @@ i = 0; // initializing
 end
 
 // instructions, memory addresses are being loaded -- before the computer starts
-always @(posedge _if.clk)
-begin
-if(i < 16)
-begin
-_if.progReg[i] = _if.myprogram;
-_if.dataStore[i] = _if.myinput;
-i = i + 1;
-end
-end
-// Computer shall operate at this portion, after all the instructions are loaded.
 always @(posedge _if.clk)
 begin
 
@@ -54,8 +44,10 @@ case(_if.opcode) //case statement for the opcode.
 begin
   {_if.c_flag, _if.myoutput} <= _if.mem[_if.address]+_if.myinput;
 if (_if.mem[_if.address] == 0) _if.z_flag = 1;
+else _if.z_flag = 1;
 _if.HLT=1'b0;
 _if.s_flag=1'b0;
+
 end
 
 4'b0001:      //Subtraction
@@ -78,10 +70,10 @@ end
 
 4'b0010:      //Exchange
 begin
-_if.temp = _if.mem[_if.address];
+  temp = _if.mem[_if.address];
   _if.mem[_if.address] = _if.mem[(_if.address)+1];
-  _if.mem[(_if.address)+1] = _if.temp;
-_if.myoutput=_if.mem[_if.addrerrorsess];
+  _if.mem[(_if.address)+1] = temp;
+_if.myoutput=_if.mem[_if.address];
 _if.HLT=1'b0;
 end
 
@@ -89,6 +81,7 @@ end
 begin
 _if.mem[_if.address] = _if.mem[0]; 
 if (_if.mem[_if.address] == 0) _if.z_flag = 1;
+  else _if.z_flag = 0;
 _if.myoutput=_if.mem[_if.address];
 _if.HLT=1'b0;
 end
@@ -154,16 +147,16 @@ end
 
 4'b1011:                              //PUSH Operation
 begin
-_if.stackPoint = _if.stackPoint - 1;
-_if.stackReg[_if.stackPoint] = _if.mem[_if.address];
+stackPoint = stackPoint - 1;
+_if.stackReg[stackPoint] = _if.mem[_if.address];
 _if.myoutput=_if.stackReg[stackPoint];
 _if.HLT=1'b0;
 end
 
 4'b1100:                              //POP Operation
 begin
-_if.mem[_if.address] = _if.stackReg[_if.stackPoint];
-_if.stackPoint = _if.stackPoint + 1;
+_if.mem[_if.address] = _if.stackReg[stackPoint];
+stackPoint = stackPoint + 1;
 _if.myoutput=_if.mem[_if.address];
 _if.HLT=1'b0;
 end
@@ -188,7 +181,7 @@ end
   
 default: _if.myoutput=0;
 endcase
-_if.progCount = _if.progCount + 1;
+progCount = progCount + 1;
 _if.HLT=1'b0;
 end
 end
@@ -209,6 +202,7 @@ bit [7:0] progReg[0:15];
 bit [3:0] dataStore[0:15];
 bit [3:0] stackReg[0:15];
 bit  [3:0] myoutput;
+bit  [7:0] mem [((2^n)-1):0];
 bit  HLT, s_flag, z_flag, c_flag;
 bit clk, rst;
 
@@ -247,7 +241,7 @@ endclass
 //Class: generator
 //Project: MTech-VLSI-Verilog_SystemVerilog_Lab_Assignment
 //Description:
-//This is a class used for generating random variables of the clas packet's handle "item"
+//This is a class used for generating random variables of the clas 's handle "item"
 class generator;
  int loop = 4;
  event drv_done;
@@ -288,6 +282,7 @@ class driver;
  m_pc_vif.address <= item.address;
  m_pc_vif.opcode <= item.opcode;
  m_pc_vif.myinput <= item.myinput; 
+ m_pc_vif.mem <= item.mem; 
  m_pc_vif.clk <= item.clk;->drv_done;
  end
  endtask
@@ -317,6 +312,7 @@ class monitor;
  m_pkt.dataStore = m_pc_vif.dataStore;
  m_pkt.stackReg = m_pc_vif.stackReg;
  m_pkt.myoutput = m_pc_vif.myoutput;
+ m_pkt.mem = m_pc_vif.mem;
  m_pkt.HLT = m_pc_vif.HLT;
  m_pkt.s_flag = m_pc_vif.s_flag;
  m_pkt.z_flag = m_pc_vif.z_flag;
@@ -343,14 +339,15 @@ packet ref_item = new();
  task run();
  scb_mbx.get(item);
  item.print("Scoreboard");
- ref_item = new();
+ //ref_item = new();
  ref_item.copy(item);
 
 progCount = 0; // Program counter, counting from 0 to 15
 i = 0; // initializing
 {ref_item.s_flag, ref_item.c_flag, ref_item.z_flag, ref_item.HLT} = 0;
 stackPoint = 4'b1110;
-  for (i=0; i<(2^n); i=i+1)
+   
+       for (i=0; i<(2^n); i=i+1)
     begin
       ref_item.mem[i]=i;
       ref_item.stackReg[i]=i;
@@ -365,8 +362,10 @@ case(ref_item.opcode)
 begin
   {ref_item.c_flag, ref_item.myoutput} <= ref_item.mem[ref_item.address]+ref_item.myinput;
 if (ref_item.mem[ref_item.address] == 0) ref_item.z_flag = 1;
+else ref_item.z_flag = 1;
 ref_item.HLT=1'b0;
 ref_item.s_flag=1'b0;
+
 end
 
 4'b0001:      //Subtraction
@@ -389,9 +388,9 @@ end
 
 4'b0010:      //Exchange
 begin
-ref_item.temp = ref_item.mem[ref_item.address];
+  temp = ref_item.mem[ref_item.address];
   ref_item.mem[ref_item.address] = ref_item.mem[(ref_item.address)+1];
-  ref_item.mem[(ref_item.address)+1] = ref_item.temp;
+  ref_item.mem[(ref_item.address)+1] = temp;
 ref_item.myoutput=ref_item.mem[ref_item.address];
 ref_item.HLT=1'b0;
 end
@@ -400,6 +399,7 @@ end
 begin
 ref_item.mem[ref_item.address] = ref_item.mem[0]; 
 if (ref_item.mem[ref_item.address] == 0) ref_item.z_flag = 1;
+  else ref_item.z_flag = 0;
 ref_item.myoutput=ref_item.mem[ref_item.address];
 ref_item.HLT=1'b0;
 end
@@ -465,16 +465,16 @@ end
 
 4'b1011:                              //PUSH Operation
 begin
-ref_item.stackPoint = ref_item.stackPoint - 1;
-ref_item.stackReg[ref_item.stackPoint] = ref_item.mem[ref_item.address];
-ref_item.myoutput=ref_item.stackReg[ref_item.stackPoint];
+stackPoint = stackPoint - 1;
+ref_item.stackReg[stackPoint] = ref_item.mem[ref_item.address];
+ref_item.myoutput=ref_item.stackReg[stackPoint];
 ref_item.HLT=1'b0;
 end
 
 4'b1100:                              //POP Operation
 begin
-ref_item.mem[ref_item.address] = ref_item.stackReg[ref_item.stackPoint];
-ref_item.stackPoint = ref_item.stackPoint + 1;
+ref_item.mem[ref_item.address] = ref_item.stackReg[stackPoint];
+stackPoint = stackPoint + 1;
 ref_item.myoutput=ref_item.mem[ref_item.address];
 ref_item.HLT=1'b0;
 end
@@ -505,19 +505,22 @@ end
  assert (ref_item.s_flag != item.s_flag)
  $display("[%0t] Sign flag: Scoreboard Error! Output mismatch ref_s_flag=0x%0h s_flag=0x%0h", $time, ref_item.s_flag, item.s_flag);
  else
- $display("[%0t] Sign flag: Scoreboard Pass! Output mismatch ref_s_flag=0x%0h s_flag=0x%0h", $time, ref_item.s_flag, item.s_flag);
+ $display("[%0t] Sign flag: Scoreboard Pass! Output match ref_s_flag=0x%0h s_flag=0x%0h", $time, ref_item.s_flag, item.s_flag);
+  
  assert (ref_item.z_flag != item.z_flag)
- $display("[%0t] Zero flag: Scoreboard Error! Output mismatch ref_z_flag=0x%0h z_flag=0x%0h", $time, ref_item.z_flag, item.z_flag);
+   $display("[%0t] Zero flag: Scoreboard Error! Output mismatch ref_z_flag=0x%0h z_flag=0x%0h", $time, ref_item.z_flag, item.z_flag);
  else
- $display("[%0t] Zero flag: Scoreboard Pass! Output mismatch ref_z_flag=0x%0h z_flag=0x%0h", $time, ref_item.z_flag, item.z_flag);
+ $display("[%0t] Zero flag: Scoreboard Pass! Output match ref_z_flag=0x%0h z_flag=0x%0h", $time, ref_item.z_flag, item.z_flag);
+  
  assert (ref_item.c_flag != item.c_flag)
  $display("[%0t]  Carry flag: Scoreboard Error! Output mismatch ref_c_flag=0x%0h c_flag=0x%0h", $time, ref_item.c_flag, item.c_flag);
  else
- $display("[%0t] Carry flag: Scoreboard Pass! Output mismatch ref_c_flag=0x%0h c_flag=0x%0h", $time, ref_item.c_flag, item.c_flag);
+ $display("[%0t] Carry flag: Scoreboard Pass! Output match ref_c_flag=0x%0h c_flag=0x%0h", $time, ref_item.c_flag, item.c_flag);
+  
  assert (ref_item.myoutput != item.myoutput)
  $display("[%0t] MyOutput: Scoreboard Error! Output mismatch ref_MyOutput=0x%0h MyOutput=0x%0h", $time, ref_item.myoutput, item.myoutput);
  else
- $display("[%0t] MyOutput: Scoreboard Pass! Output mismatch ref_MyOutput=0x%0h MyOutput=0x%0h", $time, ref_item.myoutput, item.myoutput);
+ $display("[%0t] MyOutput: Scoreboard Pass! Output match ref_MyOutput=0x%0h MyOutput=0x%0h", $time, ref_item.myoutput, item.myoutput);
  end
 endtask
 endclass
@@ -603,6 +606,7 @@ interface pc_if(); //all the common signals are declared inside interface
   bit [3:0] dataStore[0:15]; // data shall be loaded here
   bit [3:0] stackReg[0:15]; // stack registers shall contain the push operations
   logic [3:0] myoutput; //output shall be shown here under OUT operation
+  bit [7:0] mem [((2^n)-1):0];
 
   logic HLT, s_flag, z_flag, c_flag; //Sign flags
   initial clk <= 0;
