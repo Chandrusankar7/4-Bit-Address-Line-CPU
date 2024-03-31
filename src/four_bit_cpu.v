@@ -40,8 +40,7 @@ s_flag = 0;
 myoutput=0;
 end
 
-//else if(progCount < 16 && !HLT)
-else
+else if(progCount < 16 && !HLT)
 begin
 case(opcode) 
 4'b0000:      //Addition
