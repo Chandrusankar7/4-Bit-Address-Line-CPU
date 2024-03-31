@@ -13,7 +13,7 @@ reg [7:0] mem [((2^n)-1):0];
 integer progCount = 0; 
 integer i=0;
 
-initial
+/*initial //Commenting since initial block is non-synthesizable
 begin
 {s_flag, c_flag, z_flag, HLT} = 0;
 stackPoint = 4'b1110;
@@ -22,7 +22,7 @@ stackPoint = 4'b1110;
       mem[i]=i;
       stackReg[i]=i;
     end
-end
+end*/
 
 always @(posedge clk)
 begin
@@ -30,7 +30,10 @@ begin
 if (rst)
 begin
   for (i=0; i<(2^n); i=i+1)
-    mem[i]=i;
+    begin
+      mem[i]=i;
+      stackReg[i]=i;
+    end
 c_flag = 0; 
 z_flag = 0;
 s_flag = 0;
